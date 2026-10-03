@@ -1,0 +1,24 @@
+# Agentic AI Academy — standalone
+# Needs Ollama running on the host with llama3.1 and nomic-embed-text pulled.
+#   docker compose up -d --build   →   http://localhost:8505
+services:
+  academy:
+    build: .
+    container_name: agentic-academy
+    restart: unless-stopped
+    ports:
+      - "8505:8505"
+    environment:
+      - OLLAMA_URL=http://host.docker.internal:11434
+      - OLLAMA_MODEL=llama3.1
+      - EMBED_MODEL=nomic-embed-text
+      - DB_PATH=/app/data/academy.db
+      # - EXTERNAL_RAG_URL=http://your-rag-service:8000   # optional
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # lets Linux reach Ollama on the host too
+    volumes:
+      - academy_data:/app/data
+      - ./knowledge/my-docs:/app/knowledge/my-docs
+
+volumes:
+  academy_data:
