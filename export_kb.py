@@ -38,7 +38,7 @@ if __name__ == "__main__":
         sys.exit("usage: python export_kb.py <target_dir>")
     target = sys.argv[1]
     os.makedirs(target, exist_ok=True)
-    for i, m in enumerate(MODULES, 1):
+    for i, m in enumerate(MODULES):
         with open(os.path.join(target, f"{i:02d}_{m['id']}.md"), "w", encoding="utf-8") as f:
             f.write(module_md(m))
     with open(os.path.join(target, "10_capstones.md"), "w", encoding="utf-8") as f:

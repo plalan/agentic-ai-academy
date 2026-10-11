@@ -75,7 +75,7 @@ def _plain(s: str) -> str:
 
 def course_documents() -> list[tuple[str, str]]:
     docs = []
-    for i, m in enumerate(MODULES, 1):
+    for i, m in enumerate(MODULES):
         out = [f"# Module {i}: {m['title']}", m["tagline"], ""]
         for les in m["lessons"]:
             out += [f"## {les['title']}", ""] + [_plain(p) + "\n" for p in les["body"]]

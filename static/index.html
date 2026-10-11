@@ -180,6 +180,17 @@ svg text { font-family: var(--sans); }
 .capstep { display: flex; gap: 10px; align-items: flex-start; padding: 7px 0; }
 .capstep input { margin-top: 4px; width: 17px; height: 17px; accent-color: var(--accent2); }
 
+/* ---------- onboarding & paths ---------- */
+.onboard { background: linear-gradient(135deg, var(--card), var(--card2)); }
+.choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+.choice { display: flex; flex-direction: column; gap: 3px; text-align: left; background: var(--bg); border: 1.5px solid var(--line); color: var(--text);
+  border-radius: 14px; padding: 14px; transition: border-color .15s, transform .15s; }
+.choice:hover { border-color: var(--accent2); transform: translateY(-1px); }
+.choice.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--bg)); }
+.choice .e { font-size: 24px; }
+.dimmed { opacity: .62; } .dimmed:hover { opacity: 1; }
+.modcard .num { font-size: 12.5px; }
+
 .toast { position: fixed; bottom: 22px; right: 22px; background: var(--card); border: 1px solid var(--accent); border-radius: 12px;
   padding: 12px 16px; box-shadow: var(--shadow); transform: translateY(120px); opacity: 0; transition: all .35s; z-index: 50; }
 .toast.show { transform: none; opacity: 1; }

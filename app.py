@@ -37,7 +37,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from content import MODULES, CAPSTONES
+from content import MODULES, CAPSTONES, ONBOARDING
 from engine import KnowledgeEngine
 
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
@@ -160,7 +160,7 @@ def health():
 
 @app.get("/api/content")
 def content():
-    return {"modules": MODULES, "capstones": CAPSTONES, "xp_rules": XP}
+    return {"modules": MODULES, "capstones": CAPSTONES, "xp_rules": XP, "onboarding": ONBOARDING}
 
 # ---------------------------------------------------------------------------
 # Progress

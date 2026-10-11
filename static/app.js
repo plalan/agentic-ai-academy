@@ -89,15 +89,19 @@ function renderHeader() {
   $("#xptext").textContent = `${p.xp} XP · ${300 - into} to next`;
 }
 function renderNav() {
-  const r = S.route;
-  let h = `<button class="navitem ${r.view === "home" ? "active" : ""}" data-go="home"><span class="ic">🏠</span><span class="t">Home</span></button>`;
-  h += `<div class="navlabel">Modules</div>`;
-  S.content.modules.forEach((m, i) => {
+  const r = S.route, mods = S.content.modules, path = pathIds();
+  const item = (m, dim) => {
     const pct = modPct(m), badge = S.progress.badges.includes(m.id);
-    h += `<button class="navitem ${r.view === "module" && r.id === m.id ? "active" : ""}" data-go="module" data-id="${m.id}">
-      <span class="ic">${m.icon}</span><span class="t">${i + 1}. ${esc(m.title)}<div class="mini"><div style="width:${pct}%"></div></div></span>
+    return `<button class="navitem ${dim ? "dimmed" : ""} ${r.view === "module" && r.id === m.id ? "active" : ""}" data-go="module" data-id="${m.id}">
+      <span class="ic">${m.icon}</span><span class="t">${modNum(m)}. ${esc(m.title)}<div class="mini"><div style="width:${pct}%"></div></div></span>
       ${badge ? `<span class="badge-ok" title="Badge earned">🏅</span>` : ""}</button>`;
-  });
+  };
+  let h = `<button class="navitem ${r.view === "home" ? "active" : ""}" data-go="home"><span class="ic">🏠</span><span class="t">Home</span></button>`;
+  if (path) {
+    h += `<div class="navlabel">Your path</div>` + path.map(id => item(mod(id))).join("");
+    const rest = mods.filter(m => !path.includes(m.id));
+    if (rest.length) h += `<div class="navlabel">More to explore</div>` + rest.map(m => item(m, true)).join("");
+  } else h += `<div class="navlabel">Modules</div>` + mods.map(m => item(m)).join("");
   h += `<div class="navlabel">Build</div>
     <button class="navitem ${r.view === "capstones" ? "active" : ""}" data-go="capstones"><span class="ic">🏗️</span><span class="t">Capstone projects</span></button>`;
   $("#nav").innerHTML = h;
@@ -141,20 +145,69 @@ function healthBanner() {
   return `<div class="callout warn" style="margin-bottom:18px"><b>Almost ready.</b> Lessons, quizzes and most labs work now. The Embedding Observatory, vector search and the tutor need Ollama:<ul style="margin:6px 0 0">${issues.map(i => `<li>${i}</li>`).join("")}</ul></div>`;
 }
 
+// ---------------------------------------------------------------- profile & path
+const PF_KEY = "aa-profile";
+function profile() { try { return JSON.parse(localStorage.getItem(PF_KEY)) || null; } catch { return null; } }
+function setProfile(p) { try { p ? localStorage.setItem(PF_KEY, JSON.stringify(p)) : localStorage.removeItem(PF_KEY); } catch { } S.profile = p; }
+function pathIds() {
+  const p = S.profile; if (!p || p.skip) return null;
+  return (S.content.onboarding.paths[p.level] || {})[p.goal] || null;
+}
+const modNum = m => S.content.modules.indexOf(m);
+const modMins = m => m.lessons.length * 3 + 15;
+const LEVEL_PILL = { Beginner: "good", Intermediate: "acc", Advanced: "vio" };
+
+function onboardingHTML(draft) {
+  const ob = S.content.onboarding;
+  return `<div class="card onboard">
+    <h1>👋 New here? Two quick questions.</h1>
+    <p class="muted">This is a free, hands-on course on <b>AI agents</b>: software where a language model doesn't just answer, it plans steps and uses tools to get a job done.
+    Tell us where you're starting and we'll suggest a path through it. Nothing gets locked; you can change this any time.</p>
+    ${ob.questions.map(q => `<h3 style="margin-top:18px">${esc(q.q)}</h3><div class="choices">${q.options.map(o =>
+      `<button class="choice ${draft[q.id] === o.id ? "on" : ""}" data-q="${q.id}" data-o="${o.id}"><span class="e">${o.icon}</span><b>${esc(o.label)}</b><span class="small muted">${esc(o.hint)}</span></button>`).join("")}</div>`).join("")}
+    <div class="row" style="margin-top:20px"><button class="btn" id="obgo" ${draft.level && draft.goal ? "" : "disabled"}>Show my path →</button>
+    <button class="btn ghost" id="obskip">Skip, show me everything</button></div></div>`;
+}
+
+function modCard(m, opts = {}) {
+  const p = S.progress;
+  return `<div class="card modcard ${opts.dim ? "dimmed" : ""}" data-id="${m.id}">
+      <span class="num">${opts.step ? `Step ${opts.step}` : String(modNum(m)).padStart(2, "0")}</span>
+      <div class="ic">${m.icon}</div>
+      <h3 style="margin-top:8px">${esc(m.title)} ${p.badges.includes(m.id) ? "🏅" : ""} ${opts.start ? '<span class="pill acc">Start here</span>' : ""}</h3>
+      <div class="row small" style="margin:6px 0"><span class="pill ${LEVEL_PILL[m.level] || ""}">${m.level}</span><span class="dim">~${modMins(m)} min</span></div>
+      <div class="muted small"><b>You'll be able to:</b> ${esc(m.outcome)}</div>
+      <div class="row small dim" style="margin-top:10px"><span>🧪 ${esc(m.lab.title)}</span></div>
+      <div class="bar"><div style="width:${modPct(m)}%"></div></div>
+    </div>`;
+}
+
 // ---------------------------------------------------------------- home
-function renderHome() {
-  const p = S.progress, mods = S.content.modules;
+function renderHome(draft = {}) {
+  const p = S.progress, mods = S.content.modules, ob = S.content.onboarding;
+  if (!S.profile) {                                   // first visit: orientation before the map
+    $("#view").innerHTML = healthBanner() + onboardingHTML(draft) +
+      `<h2 style="margin:28px 0 12px">Or browse all ${mods.length} modules</h2><div class="grid g3">${mods.map(m => modCard(m)).join("")}</div>`;
+    $("#view").querySelectorAll(".choice").forEach(c => c.onclick = () => renderHome({ ...draft, [c.dataset.q]: c.dataset.o }));
+    $("#obgo").onclick = () => { setProfile({ level: draft.level, goal: draft.goal }); renderNav(); renderHome(); $("main").scrollTop = 0; };
+    $("#obskip").onclick = () => { setProfile({ skip: true }); renderNav(); renderHome(); };
+    $("#view").querySelectorAll(".modcard").forEach(c => c.onclick = () => go("module", c.dataset.id));
+    return;
+  }
+  const path = pathIds(), pathMods = path ? path.map(mod) : mods, rest = path ? mods.filter(m => !path.includes(m.id)) : [];
   const lessonsDone = Object.values(p.lessons).reduce((a, l) => a + l.length, 0);
   const lessonsAll = mods.reduce((a, m) => a + m.lessons.length, 0);
-  const next = mods.find(m => modPct(m) < 100) || mods[0];
+  const next = pathMods.find(m => modPct(m) < 100) || mods.find(m => modPct(m) < 100) || mods[0];
+  const label = id => { for (const q of ob.questions) { const o = q.options.find(o => o.id === id); if (o) return o.label; } return ""; };
+  const capId = path && ob.capstone_for_goal[S.profile.goal], cap = capId && S.content.capstones.find(c => c.id === capId);
+  const mins = pathMods.reduce((a, m) => a + (modPct(m) < 100 ? modMins(m) : 0), 0);
   $("#view").innerHTML = `${healthBanner()}
   <div class="hero">
     <div class="card">
       <span class="pill acc">Free · open source · runs locally</span>
       <h1 style="margin-top:12px">Learn agentic AI by building and poking, not just reading.</h1>
-      <p class="muted">Nine modules, from Python tools to LangGraph and CrewAI, plus a security module most courses skip.
-      The labs run on your machine: real embeddings from Ollama, live hybrid retrieval over a knowledge base you can add your own documents to,
-      and a step-by-step walk through a real agentic RAG graph.</p>
+      <p class="muted">Ten short modules, from "what is an agent?" to LangGraph and CrewAI, plus a security module most courses skip.
+      Every module has lessons, a hands-on lab and a quiz.</p>
       <div class="row" style="margin-top:14px">
         <button class="btn" id="cont">${lessonsDone ? "Continue" : "Start"}: ${next.icon} ${esc(next.title)}</button>
         <button class="btn ghost" id="caps">See the capstones</button>
@@ -167,17 +220,13 @@ function renderHome() {
       <div class="card stat"><b>${p.labs.length}/${mods.length}</b><span class="muted small">labs cleared</span></div>
     </div>
   </div>
-  <h2 style="margin:28px 0 12px">The quest map</h2>
-  <div class="grid g3">${mods.map((m, i) => `
-    <div class="card modcard" data-id="${m.id}">
-      <span class="num">${String(i + 1).padStart(2, "0")}</span>
-      <div class="ic">${m.icon}</div>
-      <h3 style="margin-top:8px">${esc(m.title)} ${p.badges.includes(m.id) ? "🏅" : ""}</h3>
-      <div class="muted small">${esc(m.tagline)}</div>
-      <div class="row small dim" style="margin-top:10px"><span>🧪 ${esc(m.lab.title)}</span></div>
-      <div class="bar"><div style="width:${modPct(m)}%"></div></div>
-    </div>`).join("")}
-  </div>
+  <div class="row" style="margin:28px 0 12px"><h2 style="margin:0">${path ? "Your path" : "All modules"}</h2>
+    ${path ? `<span class="pill">${esc(label(S.profile.level))}</span><span class="pill">${esc(label(S.profile.goal))}</span><span class="dim small">${pathMods.length} modules · about ${Math.max(1, Math.round(mins / 60 * 2) / 2)} h left</span>` : ""}
+    <span class="spacer"></span><button class="btn ghost small" id="repath" style="padding:4px 10px">${path ? "Change my path" : "Suggest a path for me"}</button></div>
+  <div class="grid g3">${pathMods.map((m, i) => modCard(m, { step: path ? i + 1 : 0, start: path && m === next })).join("")}
+    ${cap ? `<div class="card modcard" data-cap="1" style="border-style:dashed"><span class="num">Finish</span><div class="ic">${cap.icon}</div><h3 style="margin-top:8px">Capstone: ${esc(cap.title)}</h3><div class="muted small">${esc(cap.goal)}</div></div>` : ""}</div>
+  ${rest.length ? `<h2 style="margin:28px 0 6px">More to explore</h2><p class="muted small" style="margin:0 0 12px">Not on your path, but open whenever you're curious.</p>
+  <div class="grid g3">${rest.map(m => modCard(m, { dim: true })).join("")}</div>` : ""}
   <div class="callout acc" style="margin-top:22px">
     <b>How XP works:</b> lesson +10 · lab +50 · each correct quiz answer +20 (best score counts) · capstone step +25.
     A module badge needs every lesson, the lab, and 4/5 on the quiz. 300 XP per level.
@@ -185,7 +234,8 @@ function renderHome() {
   </div>`;
   $("#cont").onclick = () => go("module", next.id);
   $("#caps").onclick = () => go("capstones");
-  $("#view").querySelectorAll(".modcard").forEach(c => c.onclick = () => go("module", c.dataset.id));
+  $("#repath").onclick = () => { setProfile(null); renderNav(); renderHome(); $("main").scrollTop = 0; };
+  $("#view").querySelectorAll(".modcard").forEach(c => c.onclick = () => c.dataset.cap ? go("capstones") : go("module", c.dataset.id));
   $("#reset").onclick = async () => {
     if (!confirm("Reset all XP, badges and progress?")) return;
     if (S.demo) { try { localStorage.removeItem(LS_KEY); } catch { } S.progress = localProgress(); }
@@ -202,8 +252,8 @@ function renderModule(m) {
   ["quiz", "🎯 Quiz", (p.quiz[m.id] || 0) >= 4], ["tutor", "💬 Ask the tutor", false]];
   $("#view").innerHTML = `
     <div class="modhead"><div class="ic">${m.icon}</div><div>
-      <div class="dim small">Module ${i + 1} of ${S.content.modules.length}</div>
-      <h1>${esc(m.title)} ${p.badges.includes(m.id) ? "🏅" : ""}</h1><div class="muted">${esc(m.tagline)}</div></div></div>
+      <div class="dim small">Module ${i} · <span class="pill ${LEVEL_PILL[m.level] || ""}">${m.level}</span> · ~${modMins(m)} min</div>
+      <h1>${esc(m.title)} ${p.badges.includes(m.id) ? "🏅" : ""}</h1><div class="muted">${esc(m.tagline)}</div><div class="small dim" style="margin-top:4px"><b>You'll be able to:</b> ${esc(m.outcome)}</div></div></div>
     <div class="tabs">${tabs.map(([k, l, ok]) => `<button class="tab ${S.tab === k ? "active" : ""}" data-tab="${k}">${l} ${ok ? '<span class="ok">✓</span>' : ""}</button>`).join("")}</div>
     <div id="pane"></div>`;
   $("#view").querySelectorAll(".tab").forEach(t => t.onclick = () => { S.tab = t.dataset.tab; renderModule(m); });
@@ -346,6 +396,46 @@ function renderCapstones() {
 // LABS
 // =====================================================================
 const LABS = {};
+
+// ---------------------------------------------------------------- 0. chatbot or agent
+LABS.agentdemo = (el, m) => {
+  const SORT = [["Explain what phishing is", "Chatbot"], ["Check 200 firewall rules against policy and open a ticket for each violation", "Agent"],
+  ["Rewrite this email more politely", "Chatbot"], ["Watch a mailbox, look up every invoice in the finance system and flag mismatches", "Agent"],
+  ["Suggest five names for a project", "Chatbot"], ["Find a slot that works across three calendars and book the meeting room", "Agent"]];
+  const AGENT = [["🧠", "Thought", "I need train options for Friday first."], ["🔧", "search_trains(from, to, date)", "Found 6 trains. Cheapest: 06:10 departure, ₹245."],
+  ["🧠", "Thought", "Check that it doesn't clash with anything on Friday."], ["🔧", "read_calendar(date)", "Free until 11:00."],
+  ["✋", "Ask the human", "Booking costs money. \"Book the 06:10 for ₹245?\" → You: yes"], ["🔧", "book_ticket(train) · add_to_calendar(event)", "Booked. Added to your calendar."],
+  ["✅", "Done", "Ticket booked on the 06:10, and it's in your calendar."]];
+  const picks = {}; let mode = null, timers = [], animate = false;
+  const draw = () => {
+    timers.forEach(clearTimeout); timers = [];
+    el.innerHTML = `
+      <div class="callout acc"><b>You:</b> "Find me the cheapest train to Pune this Friday and put it in my calendar."</div>
+      <div class="row" style="margin-top:12px"><span class="small muted">Hand this to:</span>
+        <span class="seg"><button data-m="chat" class="${mode === "chat" ? "on" : ""}">💬 A chatbot</button><button data-m="agent" class="${mode === "agent" ? "on" : ""}">🤖 An agent</button></span></div>
+      <div id="demo" style="margin-top:12px">${mode === "chat" ? `<div class="msg bot" style="max-width:100%">I can't check live train times or access your calendar, but here's how to do it: open a booking site, search for Friday, sort by price, then add the departure to your calendar app. Trains before 7 a.m. are often the cheapest.</div>
+        <div class="callout small" style="margin-top:10px">A helpful answer, and then <b>you</b> do all the work. A chatbot can only produce text.</div>`
+        : mode === "agent" ? `<div class="timeline">${AGENT.map(([e, a, o]) => `<div class="tl"><span class="who">${e} ${esc(a)}</span><span class="muted small">${esc(o)}</span></div>`).join("")}</div>
+        <div class="callout small" style="margin-top:10px">Same kind of model, but with <b>tools</b>, <b>memory</b> of earlier steps, a <b>loop</b>, and a <b>human approval</b> before spending money.</div>`
+          : `<div class="dim small">Pick one to see what happens.</div>`}</div>
+      <hr style="border:0;border-top:1px solid var(--line);margin:24px 0">
+      <h3>Now you decide: chatbot, or agent?</h3>
+      ${SORT.map(([q], i) => `<div class="sortcard"><span class="q small">${esc(q)}</span><span class="seg"><button data-s="${i}" data-v="Chatbot" class="${picks[i] === "Chatbot" ? "on" : ""}">Chatbot is enough</button><button data-s="${i}" data-v="Agent" class="${picks[i] === "Agent" ? "on" : ""}">Needs an agent</button></span></div>`).join("")}
+      <div class="row" style="margin-top:12px"><button class="btn" id="chk">Check</button></div><div id="fb"></div>`;
+    el.querySelectorAll("[data-m]").forEach(b => b.onclick = () => { mode = b.dataset.m; animate = true; draw(); });
+    el.querySelectorAll("[data-s]").forEach(b => b.onclick = () => { picks[+b.dataset.s] = b.dataset.v; draw(); });
+    if (mode === "agent") el.querySelectorAll(".tl").forEach((t, i) => animate ? timers.push(setTimeout(() => t.classList.add("show"), 450 * i)) : t.classList.add("show"));
+    animate = false;
+    $("#chk", el).onclick = () => {
+      const right = SORT.filter(([, a], i) => picks[i] === a).length;
+      $("#fb", el).innerHTML = right >= 5
+        ? `<div class="callout good"><b>${right}/6.</b> The pattern: one reply is a chatbot job. Many steps, with tools and something to check, is an agent job.</div>`
+        : `<div class="callout bad"><b>${right}/6.</b> Ask of each one: can it be finished in a single reply, or does it need several steps and access to other systems?</div>`;
+      if (right >= 5) labDone(m);
+    };
+  };
+  draw();
+};
 
 // ---------------------------------------------------------------- 1. schema
 LABS.schema = (el, m) => {
@@ -854,7 +944,7 @@ LABS.inject = (el, m) => {
 (async () => {
   try {
     [S.content, S.health] = await Promise.all([api("/api/content"), api("/api/health").catch(() => null)]);
-    S.demo = !!S.health?.demo;
+    S.demo = !!S.health?.demo; S.profile = profile();
     S.progress = S.demo ? localProgress() : await api("/api/progress");
     renderHeader(); renderNav(); render();
   } catch (e) { $("#view").innerHTML = `<div class="callout bad">Couldn't load the Academy: ${esc(e.message)}</div>`; }

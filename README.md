@@ -2,7 +2,7 @@
 
 **A free, hands-on course in building AI agents that runs entirely on your own machine.**
 
-Nine modules take you from Python tools to LangChain, embeddings, RAG, ReAct agents, LangGraph, CrewAI and deployment, plus a module on securing agents that most courses skip. Every module has short lessons, an interactive lab, a quiz and a tutor that answers from the course's own knowledge base. Progress, XP and badges keep it moving.
+Ten short modules take you from "what is an AI agent?" through Python tools, LangChain, embeddings, RAG, ReAct agents, LangGraph, CrewAI and deployment, plus a module on securing agents that most courses skip. Two questions on the home page (where you're starting, what you want) suggest a path, so a student and an experienced engineer each get a sensible route. Every module has short lessons, an interactive lab, a quiz and a tutor that answers from the course's own knowledge base. Progress, XP and badges keep it moving.
 
 No API keys and no cloud: the labs use real embeddings and a real local LLM through [Ollama](https://ollama.com).
 
@@ -14,6 +14,7 @@ No API keys and no cloud: the labs use real embeddings and a real local LLM thro
 
 | # | Module | Lab |
 |---|--------|-----|
+| 0 | What Is an AI Agent? (no code) | **Chatbot or Agent?**: watch one request handled both ways, then sort tasks |
 | 1 | Python & Jupyter for Agents | **Tool Schema Forge**: turn a Python function into the JSON schema a model sees |
 | 2 | LLMs, Prompts & LangChain | **Pipe Builder**: assemble working LCEL chains |
 | 3 | Embeddings & Vector Stores (ChromaDB, FAISS) | **Embedding Observatory**: real embeddings, similarity heatmap, 2-D meaning map, chunking playground |

@@ -13,6 +13,68 @@ ChromaDB/FAISS, FastAPI/Streamlit/Docker — plus a security module.
 """
 
 MODULES = [
+    # ------------------------------------------------------------------ 0
+    {
+        "id": "intro",
+        "title": "What Is an AI Agent?",
+        "icon": "🌱",
+        "tagline": "Start here if all of this is new. No code needed.",
+        "lessons": [
+            {
+                "title": "Chatbot, assistant, agent",
+                "body": [
+                    "A **chatbot** answers. You ask, it replies, and that's the end of it. Everything it does is produce text.",
+                    "An **agent** acts. You give it a goal, and it works out the steps, uses tools such as search, a calendar or a database, looks at what came back, and keeps going until the job is done.",
+                    "The language model inside can be exactly the same. The difference is what surrounds it: tools it is allowed to use, and a loop that lets it take more than one step.",
+                ],
+                "analogy": "A chatbot is asking a friend for directions. An agent is hiring a driver: you say where you want to go, and they handle the turns.",
+            },
+            {
+                "title": "The four parts of every agent",
+                "body": [
+                    "**A model**: the language model that reads the situation and decides what to do next.",
+                    "**Tools**: the things it is allowed to do, such as search the web, read a file, send a message or run a query. Without tools, a model can only talk.",
+                    "**Memory**: a record of what has happened so far, so step five knows what step two found.",
+                    "**A loop with a stop rule**: decide, act, look at the result, repeat. The stop rule says when to finish, or when to give up.",
+                ],
+            },
+            {
+                "title": "What agents are good at, and where they fail",
+                "body": [
+                    "Agents shine at **multi-step work with clear tools**: researching a topic across sources, sorting incoming tickets, checking records against a policy, booking and scheduling.",
+                    "They struggle when the goal is vague, when a single mistake is costly, or when nobody checks the result. A model can be **confidently wrong**, and an agent can act on that mistake.",
+                    "That is why real agents have **guardrails**: limits on how many steps they take, limits on what they may touch, and a human who approves anything that matters, such as sending money or deleting data.",
+                ],
+            },
+            {
+                "title": "How this course works",
+                "body": [
+                    "Each module has short **lessons**, one hands-on **lab**, and a five-question **quiz**. Labs are where it clicks, so don't skip them.",
+                    "You don't have to take every module. Tell the home page where you're starting from and what you want, and it suggests a path. Everything else stays open if you get curious.",
+                    "Earn XP as you go. A module badge needs every lesson, the lab, and 4 out of 5 on the quiz.",
+                ],
+            },
+        ],
+        "lab": {"type": "agentdemo", "title": "Chatbot or Agent?",
+                "intro": "Watch the same request handled by a chatbot and by an agent, then decide which jobs need which."},
+        "quiz": [
+            {"q": "What most clearly separates an agent from a chatbot?",
+             "options": ["It uses a bigger model", "It decides on and takes actions with tools to reach a goal", "It always answers faster", "It never makes mistakes"],
+             "answer": 1, "why": "The model can be identical. An agent adds tools and a loop, so it can act, not just reply."},
+            {"q": "Which of these is NOT one of the four parts of an agent?",
+             "options": ["A model", "Tools", "Memory", "Its own data centre"],
+             "answer": 3, "why": "Model, tools, memory and a loop with a stop rule. Where it runs is a separate question."},
+            {"q": "Why does an agent need a stop rule?",
+             "options": ["To save disk space", "So it finishes, or gives up, instead of looping forever", "Models require one", "To look professional"],
+             "answer": 1, "why": "A loop without an exit can run, and spend money, indefinitely."},
+            {"q": "An agent is about to send a payment. What is the sensible design?",
+             "options": ["Let it send; it's usually right", "Pause and ask a human to approve", "Send two payments to be safe", "Hide the action from the user"],
+             "answer": 1, "why": "Anything costly or irreversible should need human approval."},
+            {"q": "Which task suits an agent best?",
+             "options": ["Explaining what a firewall is", "Checking 200 firewall rules against policy and opening tickets for the violations", "Suggesting a name for a project", "Fixing the grammar in one sentence"],
+             "answer": 1, "why": "It has many steps, clear tools and a checkable result. The others are single replies."},
+        ],
+    },
     # ------------------------------------------------------------------ 1
     {
         "id": "python",
@@ -567,3 +629,62 @@ CAPSTONES = [
                   "Run llm-injection-harness and reach a resilience score of 80%+"],
     },
 ]
+
+# ---------------------------------------------------------------------------
+# Level and outcome for each module (shown on cards and in the path builder)
+# ---------------------------------------------------------------------------
+_META = {
+    "intro":     ("Beginner",     "Explain what an AI agent is and how it differs from a chatbot."),
+    "python":    ("Beginner",     "Turn a Python function into a tool a model can call."),
+    "langchain": ("Beginner",     "Write prompts and chain them into a working pipeline."),
+    "vectors":   ("Intermediate", "Explain embeddings, and choose a chunk size and a vector store."),
+    "rag":       ("Intermediate", "Build retrieval that finds the right text, and know how to test it."),
+    "agents":    ("Intermediate", "Design a tool-using agent loop with sensible guardrails."),
+    "langgraph": ("Advanced",     "Model an agent as a state graph with branches, loops and checkpoints."),
+    "crewai":    ("Advanced",     "Staff a multi-agent crew, and know when not to."),
+    "ship":      ("Intermediate", "Package an agent as an API inside a Docker container."),
+    "security":  ("Intermediate", "Spot prompt injection and layer defences around an agent."),
+}
+for _m in MODULES:
+    _m["level"], _m["outcome"] = _META[_m["id"]]
+
+# ---------------------------------------------------------------------------
+# Onboarding: two questions → a recommended path (nothing is ever hidden)
+# ---------------------------------------------------------------------------
+ONBOARDING = {
+    "questions": [
+        {"id": "level", "q": "Where are you starting from?", "options": [
+            {"id": "new",   "icon": "🌱", "label": "New to AI and coding",        "hint": "Student, manager, or just curious"},
+            {"id": "coder", "icon": "💻", "label": "I can code, LLMs are new",     "hint": "Comfortable with Python or similar"},
+            {"id": "llm",   "icon": "🚀", "label": "I've built with LLMs",         "hint": "Prompts and APIs yes, agents not yet"},
+        ]},
+        {"id": "goal", "q": "What do you want out of this?", "options": [
+            {"id": "understand", "icon": "💡", "label": "Understand how agents work", "hint": "Concepts first, light on code"},
+            {"id": "build",      "icon": "🛠️", "label": "Build agents myself",        "hint": "The full hands-on route"},
+            {"id": "secure",     "icon": "🛡️", "label": "Secure and test agents",     "hint": "Attack surface and defences"},
+            {"id": "ship",       "icon": "🚢", "label": "Ship one to production",     "hint": "APIs, containers, checklists"},
+        ]},
+    ],
+    # paths[level][goal] → ordered module ids
+    "paths": {
+        "new": {
+            "understand": ["intro", "langchain", "rag", "agents", "security"],
+            "build":      ["intro", "python", "langchain", "vectors", "rag", "agents", "langgraph"],
+            "secure":     ["intro", "langchain", "rag", "agents", "security"],
+            "ship":       ["intro", "python", "langchain", "agents", "ship"],
+        },
+        "coder": {
+            "understand": ["intro", "langchain", "rag", "agents", "langgraph", "security"],
+            "build":      ["python", "langchain", "vectors", "rag", "agents", "langgraph", "crewai"],
+            "secure":     ["langchain", "rag", "agents", "langgraph", "security"],
+            "ship":       ["langchain", "agents", "ship", "security"],
+        },
+        "llm": {
+            "understand": ["agents", "langgraph", "crewai", "security"],
+            "build":      ["rag", "agents", "langgraph", "crewai", "ship"],
+            "secure":     ["agents", "langgraph", "security"],
+            "ship":       ["agents", "ship", "security"],
+        },
+    },
+    "capstone_for_goal": {"build": "cap2", "secure": "cap4", "ship": "cap4"},
+}
