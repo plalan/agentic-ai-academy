@@ -79,6 +79,11 @@ Drop `.md` or `.txt` files into `knowledge/my-docs/` and press **Re-index** in t
 | `EMBED_MODEL` | `nomic-embed-text` | Embedding model |
 | `DB_PATH` | `./data/academy.db` | Progress database (the embedding cache sits beside it) |
 | `EXTERNAL_RAG_URL` | *(unset)* | Optional: also search your own RAG service from the Retrieval Microscope |
+| `DEMO_MODE` | *(unset)* | `true` for a public, LLM-free demo (see below) |
+
+### Hosting a public demo
+
+Set `DEMO_MODE=true` to run the Academy with no LLM behind it: all lessons, quizzes and browser-side labs work, progress is stored in each visitor's browser, search is keyword-only and rate-limited, and the tutor and embedding lab show a "runs locally" card. `DEMO_CONTACT_EMAIL` and `DEMO_CONTACT_LINKEDIN` (both optional) add contact links to that card. `render.yaml` deploys this to Render's free tier.
 
 ### Connecting your own RAG service
 

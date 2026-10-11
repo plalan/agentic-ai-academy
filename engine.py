@@ -166,6 +166,8 @@ class KnowledgeEngine:
             except (OSError, ValueError):
                 pass
             try:
+                if not self.ollama_url:                  # demo mode: keyword search only, by design
+                    raise RuntimeError("embeddings disabled")
                 missing = [c for c in self.chunks if c["id"] not in cache]
                 if missing:
                     for c, v in zip(missing, self._embed([c["text"] for c in missing])):
@@ -179,7 +181,8 @@ class KnowledgeEngine:
                 self.vectors_ok = True
             except Exception as e:                      # Ollama down → keyword-only
                 self.matrix, self.vectors_ok = None, False
-                self.error = f"Vector search unavailable ({e.__class__.__name__}); using keyword search only."
+                self.error = None if not self.ollama_url else \
+                    f"Vector search unavailable ({e.__class__.__name__}); using keyword search only."
             self.ready = True
 
     def build_async(self):

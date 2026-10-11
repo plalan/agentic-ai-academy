@@ -1,0 +1,14 @@
+# Deploys the LLM-free public demo to Render's free tier.
+services:
+  - type: web
+    name: agentic-ai-academy
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: DEMO_MODE
+        value: "true"
+      - key: DEMO_CONTACT_EMAIL
+        sync: false        # set in the Render dashboard, not in git
+      - key: DEMO_CONTACT_LINKEDIN
+        sync: false

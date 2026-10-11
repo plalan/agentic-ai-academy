@@ -25,13 +25,15 @@ Endpoints:
   POST /api/tutor           → RAG answer from the built-in knowledge base
 """
 import os
+import time
 import sqlite3
+from collections import defaultdict, deque
 from datetime import datetime
 
 import httpx
 import numpy as np
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -44,16 +46,51 @@ EMBED_MODEL = os.environ.get("EMBED_MODEL", "nomic-embed-text")
 EXTERNAL_RAG_URL = (os.environ.get("EXTERNAL_RAG_URL") or os.environ.get("RAG_BOT_URL") or "").rstrip("/")
 DB_PATH = os.environ.get("DB_PATH", "./data/academy.db")
 
+# Demo mode: a public, read-mostly deployment with no local LLM behind it.
+# Lessons, quizzes and the browser-side labs work; progress lives in each
+# visitor's browser; search is keyword-only; the tutor and embedding lab show
+# a "runs locally" card with the contact details below.
+DEMO_MODE = os.environ.get("DEMO_MODE", "").lower() in ("1", "true", "yes")
+DEMO_CONTACT = {"email": os.environ.get("DEMO_CONTACT_EMAIL", ""),
+                "linkedin": os.environ.get("DEMO_CONTACT_LINKEDIN", ""),
+                "repo": os.environ.get("DEMO_REPO_URL", "https://github.com/plalan/agentic-ai-academy")}
+if DEMO_MODE:
+    EXTERNAL_RAG_URL = ""
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 app = FastAPI(title="Agentic AI Academy", version="1.1")
 app.mount("/static", StaticFiles(directory=os.path.join(HERE, "static")), name="static")
 
-kb = KnowledgeEngine(OLLAMA_URL, EMBED_MODEL, os.path.join(HERE, "knowledge"),
+kb = KnowledgeEngine(None if DEMO_MODE else OLLAMA_URL, EMBED_MODEL, os.path.join(HERE, "knowledge"),
                      os.path.join(os.path.dirname(os.path.abspath(DB_PATH)), "embeddings_cache.json"))
 
 @app.on_event("startup")
 def _startup():
     kb.build_async()
+
+# ---------------------------------------------------------------------------
+# Demo-mode guard rails: small per-IP rate limit, no server-side writes
+# ---------------------------------------------------------------------------
+_hits: dict[str, deque] = defaultdict(deque)
+RATE_LIMIT, RATE_WINDOW = 40, 60          # requests per IP per minute on /api/search
+
+@app.middleware("http")
+async def _demo_guard(request: Request, call_next):
+    if DEMO_MODE and request.url.path == "/api/search":
+        ip = (request.headers.get("x-forwarded-for") or (request.client.host if request.client else "?")).split(",")[0].strip()
+        now, q = time.time(), _hits[ip]
+        while q and now - q[0] > RATE_WINDOW:
+            q.popleft()
+        if len(q) >= RATE_LIMIT:
+            return JSONResponse({"detail": "Slow down a little. Try again in a minute."}, status_code=429)
+        q.append(now)
+        if len(_hits) > 5000:
+            _hits.clear()
+    return await call_next(request)
+
+def _local_only(what: str):
+    if DEMO_MODE:
+        raise HTTPException(403, f"{what} runs on a local LLM and is switched off in the online demo.")
 
 # ---------------------------------------------------------------------------
 # XP rules
@@ -104,13 +141,19 @@ def index():
 
 @app.get("/api/health")
 def health():
+    if DEMO_MODE:
+        return {"status": "ok", "service": "agentic-academy", "demo": True, "contact": DEMO_CONTACT,
+                "ollama": {"up": False, "chat_model": False, "embed_model": False},
+                "models": {"chat": CHAT_MODEL, "embed": EMBED_MODEL},
+                "kb": {"ready": kb.ready, "chunks": len(kb.chunks), "vectors": False, "error": None},
+                "external_rag": False}
     try:
         tags = httpx.get(f"{OLLAMA_URL}/api/tags", timeout=3).json().get("models", [])
         names = {t["name"].split(":")[0] for t in tags}
         ollama = {"up": True, "chat_model": CHAT_MODEL in names, "embed_model": EMBED_MODEL in names}
     except Exception:
         ollama = {"up": False, "chat_model": False, "embed_model": False}
-    return {"status": "ok", "service": "agentic-academy", "ollama": ollama,
+    return {"status": "ok", "service": "agentic-academy", "demo": False, "ollama": ollama,
             "models": {"chat": CHAT_MODEL, "embed": EMBED_MODEL},
             "kb": {"ready": kb.ready, "chunks": len(kb.chunks), "vectors": kb.vectors_ok, "error": kb.error},
             "external_rag": bool(EXTERNAL_RAG_URL)}
@@ -131,10 +174,12 @@ class ProgressEvent(BaseModel):
 
 @app.get("/api/progress")
 def get_progress():
+    _local_only("Server-side progress")      # demo visitors keep progress in their own browser
     return _progress()
 
 @app.post("/api/progress")
 def post_progress(ev: ProgressEvent):
+    _local_only("Server-side progress")
     if ev.kind not in ("lesson", "lab", "quiz", "capstone"):
         raise HTTPException(400, "unknown kind")
     if ev.kind in ("lesson", "lab", "quiz") and ev.module not in MODULE_IDS:
@@ -159,6 +204,7 @@ def post_progress(ev: ProgressEvent):
 
 @app.post("/api/progress/reset")
 def reset_progress():
+    _local_only("Server-side progress")
     with _db() as con:
         con.execute("DELETE FROM progress")
     return _progress()
@@ -171,6 +217,7 @@ class EmbedRequest(BaseModel):
 
 @app.post("/api/embed")
 def embed(req: EmbedRequest):
+    _local_only("The embedding lab")
     texts = [t.strip()[:500] for t in req.texts if t.strip()][:10]
     if len(texts) < 2:
         raise HTTPException(400, "Give at least two sentences.")
@@ -208,6 +255,7 @@ def kb_sources(target: str = "builtin"):
 
 @app.post("/api/kb/reindex")
 def kb_reindex():
+    _local_only("Re-indexing")
     kb.build()
     return kb.sources()
 
@@ -257,6 +305,7 @@ TUTOR_SYSTEM = (
 
 @app.post("/api/tutor")
 def tutor(req: TutorRequest):
+    _local_only("The tutor")
     if not kb.ready:
         raise HTTPException(503, "The knowledge base is still indexing. Try again in a few seconds.")
     history = [t.model_dump() for t in req.history[-6:]]

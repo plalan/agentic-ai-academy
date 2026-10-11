@@ -23,9 +23,35 @@ $("#themeBtn").onclick = () => {
 };
 
 // ---------------------------------------------------------------- progress
+// Demo mode keeps progress in this browser instead of on the server.
+const LS_KEY = "aa-progress";
+function localState() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY)) || {}; } catch { return {}; }
+}
+function localProgress(st = localState()) {
+  const lessons = st.lessons || {}, labs = st.labs || [], quiz = st.quiz || {}, capstones = st.capstones || {}, X = S.content.xp_rules;
+  const count = o => Object.values(o).reduce((a, l) => a + l.length, 0);
+  const xp = count(lessons) * X.lesson + labs.length * X.lab + Object.values(quiz).reduce((a, b) => a + b, 0) * X.quiz_correct + count(capstones) * X.capstone_step;
+  const badges = S.content.modules.filter(m => (lessons[m.id] || []).length === m.lessons.length && labs.includes(m.id) && (quiz[m.id] || 0) >= 4).map(m => m.id);
+  return { lessons, labs, quiz, capstones, xp, badges, level: 1 + Math.floor(xp / 300) };
+}
+function localRecord(ev) {
+  const st = localState(); st.lessons ||= {}; st.labs ||= []; st.quiz ||= {}; st.capstones ||= {};
+  const add = (o, k, v) => { o[k] ||= []; if (!o[k].includes(v)) o[k].push(v); };
+  if (ev.kind === "lesson") add(st.lessons, ev.module, ev.item || 0);
+  else if (ev.kind === "lab") { if (!st.labs.includes(ev.module)) st.labs.push(ev.module); }
+  else if (ev.kind === "quiz") st.quiz[ev.module] = Math.max(st.quiz[ev.module] || 0, Math.min(ev.value || 0, 5));
+  else if (ev.kind === "capstone") {
+    if (ev.done === false) st.capstones[ev.module] = (st.capstones[ev.module] || []).filter(k => k !== ev.item);
+    else add(st.capstones, ev.module, ev.item || 0);
+  }
+  try { localStorage.setItem(LS_KEY, JSON.stringify(st)); } catch { }
+  return localProgress(st);
+}
+
 async function record(ev, quiet) {
   const before = S.progress;
-  S.progress = await api("/api/progress", ev);
+  S.progress = S.demo ? localRecord(ev) : await api("/api/progress", ev);
   const gained = S.progress.xp - (before ? before.xp : 0);
   if (gained > 0 && !quiet) toast(`+${gained} XP`);
   if (before && S.progress.badges.length > before.badges.length) {
@@ -89,8 +115,22 @@ function render() {
 }
 
 // ---------------------------------------------------------------- health
+function contactHTML() {
+  const c = S.health?.contact || {}, ways = [];
+  if (c.linkedin) ways.push(`<a href="${esc(c.linkedin)}" target="_blank" rel="noopener">DM me on LinkedIn</a>`);
+  if (c.email) ways.push(`email <a href="mailto:${esc(c.email)}">${esc(c.email)}</a>`);
+  const repo = c.repo ? `<a href="${esc(c.repo)}" target="_blank" rel="noopener">clone the repo</a>` : "clone the repo";
+  return `Want to see the LLM in action? ${ways.length ? ways.join(" or ") + ", or " : ""}${repo} and run it on your own machine with Ollama.`;
+}
+function localOnlyCard(what) {
+  return `<div class="card" style="text-align:center;padding:34px">
+    <div style="font-size:44px">🔌</div><h2>${what} runs on a local LLM</h2>
+    <p class="muted" style="max-width:560px;margin:0 auto 12px">This online demo has no model behind it, so nothing you type is sent to an AI service and it costs nothing to run. Everything else on the site works.</p>
+    <p style="max-width:560px;margin:0 auto">${contactHTML()}</p></div>`;
+}
 function healthBanner() {
   const h = S.health; if (!h) return "";
+  if (h.demo) return `<div class="callout acc" style="margin-bottom:18px"><b>Online demo.</b> All lessons, quizzes and most labs run right here, and your progress is saved in this browser. The tutor and the embedding lab need a local LLM. ${contactHTML()}</div>`;
   const o = h.ollama, issues = [];
   if (!o.up) issues.push(`Ollama isn't reachable. Install it from <a href="https://ollama.com" target="_blank" rel="noopener">ollama.com</a> and start it.`);
   else {
@@ -148,7 +188,9 @@ function renderHome() {
   $("#view").querySelectorAll(".modcard").forEach(c => c.onclick = () => go("module", c.dataset.id));
   $("#reset").onclick = async () => {
     if (!confirm("Reset all XP, badges and progress?")) return;
-    S.progress = await api("/api/progress/reset", {}); renderHeader(); renderNav(); render();
+    if (S.demo) { try { localStorage.removeItem(LS_KEY); } catch { } S.progress = localProgress(); }
+    else S.progress = await api("/api/progress/reset", {});
+    renderHeader(); renderNav(); render();
   };
 }
 
@@ -245,6 +287,7 @@ function renderQuiz(m, pane) {
 
 // ---------------------------------------------------------------- tutor
 function renderTutor(m, pane) {
+  if (S.demo) { pane.innerHTML = localOnlyCard("The tutor"); return; }
   const hist = S.chats[m.id] = S.chats[m.id] || [];
   const chips = [`Explain "${m.lessons[0].title}" with a security example`, `Give me a 10-minute exercise on ${m.title}`, `What's the most common mistake people make with ${m.title.split(":")[0]}?`];
   pane.innerHTML = `<div class="card">
@@ -405,8 +448,8 @@ LABS.embed = (el, m) => {
     "Immutable backups let us restore without paying.", "The monsoon arrived early this year.",
     "Heavy rain flooded the roads near the office.", "The team ordered pizza for the release party."];
   const para = "Backups are only useful if you can restore them. Attackers know this, so modern ransomware goes after backup systems first. An immutable copy cannot be changed or deleted, even by an administrator. Regular restore tests prove that recovery works and how long it takes. The restore time is the number the business actually cares about.";
-  el.innerHTML = `
-    <div class="grid g2">
+  el.innerHTML = `${S.demo ? `<div class="callout acc"><b>The live embedding map needs a local model.</b> ${contactHTML()}<br><span class="small muted">The chunking playground below runs in your browser. Move a slider to clear this lab.</span></div>` : ""}
+    <div class="grid g2" ${S.demo ? 'style="display:none"' : ""}>
       <div><h3>1 · Sentences (one per line, 2 to 10)</h3>
         <textarea id="sents" rows="8">${sample.join("\n")}</textarea>
         <div class="row" style="margin-top:10px"><button class="btn" id="emb">Embed with nomic-embed-text</button><span id="st" class="dim small"></span></div>
@@ -414,8 +457,8 @@ LABS.embed = (el, m) => {
       <div><h3>Meaning map (2-D projection)</h3><div id="map" class="chunkview" style="height:300px;padding:0"></div></div>
     </div>
     <div id="heat" style="margin-top:16px;overflow-x:auto"></div>
-    <hr style="border:0;border-top:1px solid var(--line);margin:24px 0">
-    <h3>2 · Chunking playground</h3>
+    ${S.demo ? "" : '<hr style="border:0;border-top:1px solid var(--line);margin:24px 0">'}
+    <h3>${S.demo ? "" : "2 · "}Chunking playground</h3>
     <textarea id="para" rows="4">${para}</textarea>
     <div class="grid g2" style="margin-top:10px">
       <label class="small">Chunk size: <b id="csv">120</b> characters<input type="range" id="cs" min="60" max="400" value="120" style="width:100%"></label>
@@ -432,7 +475,7 @@ LABS.embed = (el, m) => {
       parts.map(([a, b], i) => `<div class="chunkview" style="margin-bottom:6px;border-left:4px solid ${colors[i % 6]}"><span class="dim">#${i + 1}</span> ${i && ov ? `<u>${esc(t.slice(a, a + ov))}</u>${esc(t.slice(a + ov, b))}` : esc(t.slice(a, b))}</div>`).join("") +
       `<div class="callout small">${size < 100 ? "Tiny chunks: precise matches, but each one loses context. Sentences get cut mid-thought." : size > 300 ? "Big chunks: lots of context, but each vector blends several ideas, so retrieval gets blurry." : "A sensible middle. Your knowledge base uses 600 characters with 100 of overlap on long books."}</div>`;
   };
-  ["para", "cs", "co"].forEach(id => $("#" + id, el).oninput = chunk); chunk();
+  ["para", "cs", "co"].forEach(id => $("#" + id, el).oninput = () => { chunk(); if (S.demo) labDone(m); }); chunk();
 
   $("#emb", el).onclick = async () => {
     const texts = $("#sents", el).value.split("\n").map(s => s.trim()).filter(Boolean);
@@ -506,7 +549,7 @@ LABS.rag = (el, m) => {
       $("#invsum", el).textContent = `· ${inv.chunks} chunks across ${shelves.length} shelves${inv.vectors === false ? " · keyword-only (Ollama embeddings unavailable)" : ""}`;
       $("#inv", el).innerHTML = inventoryHTML(inv);
       $("#rd", el).innerHTML = `<option value="">all shelves</option>` + shelves.map(s => `<option value="${s}">${esc(shelfLabel(s))}</option>`).join("");
-      $("#reidx", el).innerHTML = target === "builtin" ? `Add your own <code>.md</code> / <code>.txt</code> files to <code>knowledge/my-docs/</code>, then <button class="btn ghost small" id="reindex" style="padding:2px 10px">Re-index</button>` : "";
+      $("#reidx", el).innerHTML = S.demo ? "This demo searches by keyword only; run it locally for vector search and your own documents." : target === "builtin" ? `Add your own <code>.md</code> / <code>.txt</code> files to <code>knowledge/my-docs/</code>, then <button class="btn ghost small" id="reindex" style="padding:2px 10px">Re-index</button>` : "";
       const ri = $("#reindex", el); if (ri) ri.onclick = async () => { ri.disabled = true; ri.textContent = "Indexing…"; await api("/api/kb/reindex", {}); loadInv(); };
       el.querySelectorAll("#inv .chip").forEach(c => c.onclick = () => { $("#rq", el).value = c.dataset.q; $("#rd", el).value = c.dataset.d; run(); });
     } catch (e) { $("#inv", el).innerHTML = `<div class="callout bad">⚠️ ${esc(e.message)}</div>`; }
@@ -810,7 +853,9 @@ LABS.inject = (el, m) => {
 // ---------------------------------------------------------------- boot
 (async () => {
   try {
-    [S.content, S.progress, S.health] = await Promise.all([api("/api/content"), api("/api/progress"), api("/api/health").catch(() => null)]);
+    [S.content, S.health] = await Promise.all([api("/api/content"), api("/api/health").catch(() => null)]);
+    S.demo = !!S.health?.demo;
+    S.progress = S.demo ? localProgress() : await api("/api/progress");
     renderHeader(); renderNav(); render();
   } catch (e) { $("#view").innerHTML = `<div class="callout bad">Couldn't load the Academy: ${esc(e.message)}</div>`; }
 })();
