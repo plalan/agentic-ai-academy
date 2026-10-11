@@ -4,6 +4,8 @@
 
 Ten short modules take you from "what is an AI agent?" through Python tools, LangChain, embeddings, RAG, ReAct agents, LangGraph, CrewAI and deployment, plus a module on securing agents that most courses skip. Two questions on the home page (where you're starting, what you want) suggest a path, so a student and an experienced engineer each get a sensible route. Every module has short lessons, an interactive lab, a quiz and a tutor that answers from the course's own knowledge base. Progress, XP and badges keep it moving.
 
+**▶ Try the online demo: https://agentic-ai-academy-56ej.onrender.com** (lessons, quizzes and most labs; the tutor and embedding lab need the local version. Free hosting, so the first load can take up to a minute.)
+
 No API keys and no cloud: the labs use real embeddings and a real local LLM through [Ollama](https://ollama.com).
 
 ![Home](docs/home.jpg)
