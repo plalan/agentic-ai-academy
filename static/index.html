@@ -191,6 +191,10 @@ svg text { font-family: var(--sans); }
 .dimmed { opacity: .62; } .dimmed:hover { opacity: 1; }
 .modcard .num { font-size: 12.5px; }
 
+.brand small a { color: var(--muted); text-decoration: none; } .brand small a:hover { color: var(--accent); }
+.foot { max-width: 1080px; margin: 36px auto 0; padding-top: 16px; border-top: 1px solid var(--line); text-align: center; font-size: 13px; color: var(--dim); }
+.foot a { color: var(--muted); text-decoration: none; } .foot a:hover { color: var(--accent); }
+
 .toast { position: fixed; bottom: 22px; right: 22px; background: var(--card); border: 1px solid var(--accent); border-radius: 12px;
   padding: 12px 16px; box-shadow: var(--shadow); transform: translateY(120px); opacity: 0; transition: all .35s; z-index: 50; }
 .toast.show { transform: none; opacity: 1; }
@@ -212,7 +216,7 @@ svg text { font-family: var(--sans); }
 <body>
 <div class="app">
   <header>
-    <div class="brand"><span class="logo">🕸️</span><div>Agentic AI Academy<small>Learn agentic AI by building, locally</small></div></div>
+    <div class="brand"><span class="logo">🕸️</span><div>Agentic AI Academy<small><a href="https://lalanprasad.in" target="_blank" rel="noopener">🌼 A Marigold Project</a></small></div></div>
     <div class="xpwrap">
       <span class="level" id="level">Lv 1</span>
       <div class="xpbar"><div id="xpfill" style="width:0%"></div></div>
@@ -221,7 +225,8 @@ svg text { font-family: var(--sans); }
     </div>
   </header>
   <nav id="nav"></nav>
-  <main><div class="wrap" id="view"></div></main>
+  <main><div class="wrap" id="view"></div>
+    <footer class="foot"><a href="https://lalanprasad.in" target="_blank" rel="noopener">🌼 A Marigold Project</a> · free and open source on <a href="https://github.com/plalan/agentic-ai-academy" target="_blank" rel="noopener">GitHub</a></footer></main>
 </div>
 <div class="toast" id="toast"></div>
 <script src="/static/app.js"></script>

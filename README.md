@@ -120,3 +120,7 @@ Contributions are welcome, especially new labs, quiz questions and translations.
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+---
+
+🌼 **A Marigold Project** · [lalanprasad.in](https://lalanprasad.in)
