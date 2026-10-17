@@ -27,6 +27,8 @@ No API keys and no cloud: the labs use real embeddings and a real local LLM thro
 | 8 | Shipping: FastAPI, Streamlit & Docker | **Layer Cake**: order a Dockerfile for good caching; FastAPI or Streamlit? |
 | 9 | Securing Agents (bonus) | **Injection Spotter**: find the direct, indirect and encoded injections |
 
+Each module also has a **Watch** tab with hand-picked free videos and courses by other creators (Andrej Karpathy, 3Blue1Brown, Andrew Ng, IBM Technology, LangChain Academy, DeepLearning.AI and more), embedded with YouTube's own player and credited to their creators.
+
 Plus four capstone projects with checklists: a cited datasheet Q&A, a self-checking LangGraph research agent, a CrewAI brief-writing crew, and a hardened FastAPI + Docker deployment.
 
 ![Retrieval Microscope](docs/retrieval.jpg)
@@ -110,6 +112,7 @@ export_kb.py      Export the curriculum as markdown for other RAG systems
 
 ## Notes
 
+- Videos in the Watch tabs are embedded through YouTube's player only where their owners allow embedding; all rights remain with the creators. Courses are linked, not copied.
 - Independent and unofficial. Not affiliated with any university, certificate programme or vendor.
 - The VaultLine VX-4400 datasheet in `knowledge/samples/` is fictional, written to demonstrate exact-identifier search.
 - Library APIs move fast. Code samples target LangChain 1.x, current LangGraph and CrewAI; please open an issue if something has drifted.

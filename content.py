@@ -688,3 +688,78 @@ ONBOARDING = {
     },
     "capstone_for_goal": {"build": "cap2", "secure": "cap4", "ship": "cap4"},
 }
+
+# ---------------------------------------------------------------------------
+# Watch: free videos and courses by other creators, per module.
+# Every video was checked against YouTube (title, channel, length, and that the
+# owner allows embedding). They are embedded with YouTube's own player and
+# credited to their creators; all rights stay with them. Courses are links only.
+# ---------------------------------------------------------------------------
+def _v(yt, title, channel, mins, why, start=0):
+    return {"yt": yt, "title": title, "channel": channel, "mins": mins, "why": why, "start": start}
+
+def _l(url, title, source, why):
+    return {"url": url, "title": title, "source": source, "why": why}
+
+WATCH = {
+    "intro": {"videos": [
+        _v("zjkBMFhNj_g", "[1hr Talk] Intro to Large Language Models", "Andrej Karpathy", 60,
+           "The best general-audience explanation of what an LLM is, how it's trained, and where it's heading. Includes a section on LLM security."),
+        _v("F8NKVhkZZWI", "What are AI Agents?", "IBM Technology", 12,
+           "How systems moved from single models to agents that plan, use tools and act."),
+    ], "links": []},
+    "python": {"videos": [
+        _v("kwvA2Cxntuw", "LLMs Can Use Tools, Just Like You and I - LLM Function Calling Explained", "Gary Explains", 8,
+           "Function calling in plain terms: the model asks, your code runs the tool."),
+        _v("HW29067qVWk", "Jupyter Notebook Tutorial: Introduction, Setup, and Walkthrough", "Corey Schafer", 30,
+           "A clear walkthrough of notebooks, if you haven't used them before."),
+    ], "links": []},
+    "langchain": {"videos": [
+        _v("1bUy-1hGZpI", "What is LangChain?", "IBM Technology", 8,
+           "What LangChain is for and the building blocks it gives you."),
+    ], "links": []},
+    "vectors": {"videos": [
+        _v("wjZofJX0v4M", "Transformers, the tech behind LLMs | Deep Learning Chapter 5", "3Blue1Brown", 27,
+           "Beautifully animated. The section on word embeddings shows meaning as directions in space."),
+        _v("dN0lsF2cvm4", "Vector Databases simply explained! (Embeddings & Indexes)", "AssemblyAI", 4,
+           "A four-minute overview of embeddings, vector databases and indexes."),
+    ], "links": []},
+    "rag": {"videos": [
+        _v("T-D1OfcDW1M", "What is Retrieval-Augmented Generation (RAG)?", "IBM Technology", 7,
+           "Why grounding a model in retrieved documents makes answers more current and trustworthy."),
+    ], "links": []},
+    "agents": {"videos": [
+        _v("sal78ACtGTc", "What's next for AI agentic workflows ft. Andrew Ng of AI Fund", "Sequoia Capital", 14,
+           "Andrew Ng on agentic design patterns: reflection, tool use, planning and multi-agent collaboration."),
+    ], "links": []},
+    "langgraph": {"videos": [
+        _v("qAF1NjEVHhY", "LangChain vs LangGraph: A Tale of Two Frameworks", "IBM Technology", 10,
+           "When a straight chain is enough, and when you need a graph."),
+    ], "links": [
+        _l("https://academy.langchain.com/courses/intro-to-langgraph", "Introduction to LangGraph", "LangChain Academy (free)",
+           "The official free course from the LangGraph team: graphs, memory, human-in-the-loop and deployment."),
+    ]},
+    "crewai": {"videos": [
+        _v("UV81LAb3x2g", "crewAI Crash Course For Beginners", "Krish Naik", 33,
+           "A hands-on walkthrough of building a multi-agent crew."),
+    ], "links": [
+        _l("https://learn.deeplearning.ai/courses/multi-ai-agent-systems-with-crewai", "Multi AI Agent Systems with crewAI", "DeepLearning.AI (free short course)",
+           "Taught by CrewAI's founder: roles, tools, memory, guardrails and collaboration."),
+    ]},
+    "ship": {"videos": [
+        _v("Gjnup-PuquQ", "Docker in 100 Seconds", "Fireship", 2,
+           "Images, containers and Dockerfiles in under two minutes."),
+        _v("iWS9ogMPOI0", "Python FastAPI Tutorial: Build a REST API in 15 Minutes", "pixegami", 15,
+           "Build a small API with FastAPI from scratch."),
+    ], "links": []},
+    "security": {"videos": [
+        _v("jrHRe9lSqqA", "What Is a Prompt Injection Attack?", "IBM Technology", 11,
+           "What prompt injection is and why it is so hard to stop."),
+        _v("5ZA1lTxTH3c", "Securing AI Agents: How to Prevent Hidden Prompt Injection Attacks", "IBM Technology", 10,
+           "Indirect injection against agents, and defences."),
+        _v("gUNXZMcd2jU", "OWASP's Top 10 Ways to Attack LLMs: AI Vulnerabilities Exposed", "IBM Technology", 25,
+           "A tour of the OWASP Top 10 for LLM applications."),
+    ], "links": []},
+}
+for _m in MODULES:
+    _m["watch"] = WATCH.get(_m["id"], {"videos": [], "links": []})

@@ -248,7 +248,7 @@ function renderHome(draft = {}) {
 function renderModule(m) {
   const p = S.progress, i = S.content.modules.indexOf(m);
   const lessonsDone = (p.lessons[m.id] || []).length === m.lessons.length;
-  const tabs = [["learn", "📖 Learn", lessonsDone], ["lab", "🧪 Lab", p.labs.includes(m.id)],
+  const tabs = [["learn", "📖 Learn", lessonsDone], ["watch", "🎬 Watch", false], ["lab", "🧪 Lab", p.labs.includes(m.id)],
   ["quiz", "🎯 Quiz", (p.quiz[m.id] || 0) >= 4], ["tutor", "💬 Ask the tutor", false]];
   $("#view").innerHTML = `
     <div class="modhead"><div class="ic">${m.icon}</div><div>
@@ -259,6 +259,7 @@ function renderModule(m) {
   $("#view").querySelectorAll(".tab").forEach(t => t.onclick = () => { S.tab = t.dataset.tab; renderModule(m); });
   const pane = $("#pane");
   if (S.tab === "learn") renderLearn(m, pane);
+  else if (S.tab === "watch") renderWatch(m, pane);
   else if (S.tab === "lab") { pane.innerHTML = `<div class="card lab"><h3>🧪 ${esc(m.lab.title)} ${p.labs.includes(m.id) ? '<span class="pill good">cleared</span>' : ""}</h3><p class="muted">${esc(m.lab.intro)}</p><div id="labbody"></div></div>`; LABS[m.lab.type]($("#labbody"), m); }
   else if (S.tab === "quiz") renderQuiz(m, pane);
   else renderTutor(m, pane);
@@ -298,6 +299,37 @@ function renderLearn(m, pane) {
     if (!done.includes(idx)) await record({ kind: "lesson", module: m.id, item: idx });
     if (last) { S.tab = "lab"; renderModule(m); } else { S.lesson[m.id] = idx + 1; renderModule(m); }
   };
+}
+
+// ---------------------------------------------------------------- watch
+function renderWatch(m, pane) {
+  const w = m.watch || { videos: [], links: [] };
+  pane.innerHTML = `
+    <p class="muted">Free videos and courses by other creators, picked to go with this module. Videos play in YouTube's own player and load only when you press play.</p>
+    <div class="grid g2">${w.videos.map((v, i) => `
+      <div class="card" style="padding:0;overflow:hidden">
+        <div class="vid" data-i="${i}" role="button" tabindex="0" aria-label="Play ${esc(v.title)}"
+          style="position:relative;aspect-ratio:16/9;background:#000 url('https://i.ytimg.com/vi/${v.yt}/hqdefault.jpg') center/cover;cursor:pointer">
+          <span style="position:absolute;inset:0;display:grid;place-items:center"><span style="background:rgba(0,0,0,.65);color:#fff;border-radius:999px;padding:12px 20px;font-weight:700">▶ Play · ${v.mins} min</span></span>
+        </div>
+        <div style="padding:14px 16px">
+          <b>${esc(v.title)}</b>
+          <div class="small muted" style="margin:4px 0 8px">${esc(v.channel)} · <a href="https://www.youtube.com/watch?v=${v.yt}${v.start ? "&t=" + v.start : ""}" target="_blank" rel="noopener">watch on YouTube ↗</a></div>
+          <div class="small">${esc(v.why)}</div>
+        </div>
+      </div>`).join("")}</div>
+    ${w.links.length ? `<h3 style="margin-top:22px">Free courses</h3><div class="grid g2">${w.links.map(l => `
+      <a class="card" href="${esc(l.url)}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">
+        <b>${esc(l.title)} ↗</b><div class="small muted" style="margin:4px 0 8px">${esc(l.source)}</div><div class="small">${esc(l.why)}</div></a>`).join("")}</div>` : ""}
+    <p class="dim small" style="margin-top:18px">All videos and courses belong to their creators and are embedded or linked as published. Found a broken link? Open an issue on GitHub.</p>`;
+  pane.querySelectorAll(".vid").forEach(el => {
+    const play = () => {
+      const v = w.videos[+el.dataset.i];
+      el.outerHTML = `<iframe style="width:100%;aspect-ratio:16/9;border:0;display:block" src="https://www.youtube-nocookie.com/embed/${v.yt}?autoplay=1&rel=0${v.start ? "&start=" + v.start : ""}"
+        title="${esc(v.title)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
+    };
+    el.onclick = play; el.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); play(); } };
+  });
 }
 
 // ---------------------------------------------------------------- quiz

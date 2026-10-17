@@ -83,6 +83,12 @@ def course_documents() -> list[tuple[str, str]]:
                 out += [f"Analogy: {les['analogy']}", ""]
             if les.get("code"):
                 out += ["Example code:", les["code"], ""]
+        w = m.get("watch", {})
+        if w.get("videos") or w.get("links"):
+            out += ["## Recommended videos and courses", ""]
+            out += [f"- Video: \"{v['title']}\" by {v['channel']} ({v['mins']} min). {v['why']}" for v in w.get("videos", [])]
+            out += [f"- Course: \"{l['title']}\", {l['source']}. {l['why']}" for l in w.get("links", [])]
+            out += [""]
         out += ["## Check your understanding", ""]
         out += [f"Q: {_plain(q['q'])}\nA: {q['options'][q['answer']]}. {q['why']}\n" for q in m["quiz"]]
         docs.append((f"Module {i}: {m['title']}", "\n".join(out)))
